@@ -1,0 +1,58 @@
+import io
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
+
+# 1. Load the sample data
+csv_data = """Date,Store_ID,Product_Category,Price,Is_Holiday,On_Promotion,Weekly_Sales
+2026-01-05,101,Electronics,299.99,0,1,15200.50
+2026-01-12,101,Electronics,299.99,0,0,12100.00
+2026-01-19,101,Clothing,49.99,0,1,8500.25
+2026-01-26,101,Clothing,49.99,1,1,14200.80
+2026-02-02,102,Electronics,199.99,0,0,9800.00
+2026-02-09,102,Home_Decor,89.95,0,1,6400.10
+2026-02-16,102,Home_Decor,89.95,1,0,7100.00
+2026-02-23,103,Electronics,450.00,0,1,22000.35
+2026-03-02,103,Clothing,35.00,0,0,4100.15
+2026-03-09,103,Home_Decor,120.00,0,1,11300.90"""
+
+# Read data (Replace with pd.read_csv('/kaggle/input/...csv') on Kaggle)
+df = pd.read_csv(io.StringIO(csv_data))
+
+# 2. Feature Engineering
+df["Date"] = pd.to_datetime(df["Date"])
+df["Month"] = df["Date"].dt.month
+df["Week_of_Year"] = df["Date"].dt.isocalendar().week.astype(int)
+
+# Drop raw date column
+df = df.drop(columns=["Date"])
+
+# 3. Categorical Encoding
+df = pd.get_dummies(df, columns=["Product_Category"], drop_first=True)
+
+# 4. Split Features and Target
+X = df.drop(columns=["Weekly_Sales"])
+y = df["Weekly_Sales"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# 5. Model Training
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# 6. Evaluation
+predictions = model.predict(X_test)
+rmse = np.sqrt(mean_squared_error(y_test, predictions))
+r2 = r2_score(y_test, predictions)
+
+print(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
+print(f"R-squared Score (R2): {r2:.2f}")
+
+# 7. View Feature Importance
+importances = pd.Series(model.feature_importances_, index=X.columns)
+print("\nFeature Importances:")
+print(importances.sort_values(ascending=False))
